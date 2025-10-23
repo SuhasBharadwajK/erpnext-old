@@ -109,8 +109,8 @@ calendars = ["Task", "Work Order", "Sales Order", "Holiday List", "ToDo"]
 website_generators = ["BOM", "Sales Partner"]
 
 website_context = {
-	"favicon": "/assets/erpnext/images/spl/spl-favicon.png",
-	"splash_image": "/assets/erpnext/images/spl/spl-logo.png",
+	"favicon": "/assets/erpnext/images/mahi/mahi-logo-small.png",
+	"splash_image": "/assets/erpnext/images/mahi/mahi-logo-full.png",
 }
 
 # nosemgrep
