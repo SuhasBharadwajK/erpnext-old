@@ -5,13 +5,15 @@
  "docstatus": 0,
  "doctype": "Number Card",
  "dynamic_filters_json": "{}",
+ "filters_config": "",
  "filters_json": "{}",
  "function": "Count",
  "idx": 0,
  "is_public": 0,
  "is_standard": 1,
  "label": "Overall Invoice Due",
- "modified": "2025-09-12 22:31:46.929189",
+ "method": "erpnext.accounts.doctype.purchase_invoice.purchase_invoice_dashboard.get_total_invoice_due",
+ "modified": "2025-09-19 15:01:46.280471",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Overall Invoice Due",
@@ -21,5 +23,5 @@
  "report_name": "Total Invoice Due",
  "show_percentage_stats": 1,
  "stats_time_interval": "Daily",
- "type": "Report"
+ "type": "Custom"
 }

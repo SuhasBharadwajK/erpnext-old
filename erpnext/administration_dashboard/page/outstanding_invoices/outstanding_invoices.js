@@ -1,6 +1,7 @@
 let datatable;
 let current_filter_param = "";
 let is_fetching = false;
+let selected_invoices = [];
 
 const all_invoices_filter = "all";
 const week_invoices_filter = "week";
@@ -13,8 +14,34 @@ const oldest_filter = "oldest";
 
 const table_columns = [
 	{
+		name: `
+        <input 
+            type="checkbox" 
+            id="select-all-checkbox" 
+            style="cursor: pointer; transform: scale(1.1);"
+            title="Select / Deselect All"
+        />
+    	`,
+		id: "select",
+		width: 50,
+		editable: false,
+		resizable: false,
+		dropdown: false,
+		format: (value, row, column, data, rowIndex) => {
+			return `
+				<input 
+					type="checkbox" 
+					class="invoice-checkbox" 
+					data-invoice="${data.name}" 
+					style="cursor: pointer;"
+				/>
+			`;
+		},
+	},
+	{
 		name: __("Invoice No."),
 		id: "name",
+		width: 150,
 		editable: false,
 		resizable: false,
 		format: (value) => `<a href="/app/purchase-invoice/${value}" target="_blank">${value}</a>`,
@@ -22,6 +49,7 @@ const table_columns = [
 	{
 		name: __("Invoice Date"),
 		id: "posting_date",
+		width: 120,
 		editable: false,
 		resizable: false,
 		format: (value) => frappe.format(value, { fieldtype: 'Date' }),
@@ -29,6 +57,7 @@ const table_columns = [
 	{
 		name: __("Party"),
 		id: "supplier_name",
+		width: 180,
 		editable: false,
 		resizable: false,
 		format: (value) => `<a href="/app/supplier/${value}" target="_blank">${value}</a>`,
@@ -36,6 +65,7 @@ const table_columns = [
 	{
 		name: __("Payable (Entered)"),
 		id: "grand_total",
+		width: 160,
 		editable: false,
 		resizable: false,
 		format: (value, _, __, doc) => frappe.format(value, { fieldtype: 'Currency', options: "currency" }, null, doc),
@@ -43,6 +73,7 @@ const table_columns = [
 	{
 		name: __("Payable (Accounted)"),
 		id: "outstanding_amount",
+		width: 150,
 		editable: false,
 		resizable: false,
 		format: (value, _, __, doc) => frappe.format(value, { fieldtype: 'Currency', options: "price_list_currency" }, null, doc),
@@ -50,6 +81,7 @@ const table_columns = [
 	{
 		name: __("GST"),
 		id: "base_taxes_and_charges_added",
+		width: 150,
 		editable: false,
 		resizable: false,
 		format: (value, _, __, doc) => frappe.format(value, { fieldtype: 'Currency', options: "price_list_currency" }, null, doc),
@@ -57,6 +89,7 @@ const table_columns = [
 	{
 		name: __("TDS"),
 		id: "base_taxes_and_charges_deducted",
+		width: 150,
 		editable: false,
 		resizable: false,
 		format: (value, _, __, doc) => frappe.format(value, { fieldtype: 'Currency', options: "price_list_currency" }, null, doc),
@@ -64,6 +97,7 @@ const table_columns = [
 	{
 		name: __("Due Date"),
 		id: "due_date",
+		width: 150,
 		editable: false,
 		resizable: false,
 		format: (value) => frappe.format(value, { fieldtype: 'Date' }),
@@ -125,6 +159,32 @@ frappe.pages["outstanding-invoices"].on_page_load = function (wrapper) {
 	page.set_secondary_action("Refresh Invoices", () => refresh_invoices(page), "refresh");
 	page.add_action_item("Print", () => open_print_dialog(), true);
 
+	page.set_primary_action("Proceed for Payment", () => {
+        if (selected_invoices.length === 0) {
+            frappe.msgprint("Please select at least one invoice to proceed for payment.");
+            return;
+        }
+
+        frappe.confirm(
+            `Are you sure you want to proceed payment for ${selected_invoices.length} invoice(s)?`,
+            () => {
+                frappe.call({
+                    method: "erpnext.administration_dashboard.page.outstanding_invoices.outstanding_invoices.process_multiple_payments",
+                    args: { invoices: selected_invoices },
+                    freeze: true,
+                    freeze_message: __("Processing payments..."),
+                    callback: function (r) {
+                        if (!r.exc) {
+                            frappe.msgprint("Payments processed successfully!");
+                            refresh_invoices(page);
+                            selected_invoices = [];
+                        }
+                    },
+                });
+            }
+        );
+    }, "money");
+
 	const open_print_dialog = () => {
 		frappe.msgprint("Work in progress. Coming soon!");
 	};
@@ -156,7 +216,28 @@ frappe.pages["outstanding-invoices"].on_page_load = function (wrapper) {
 		columns: table_columns,
 		serialNoColumn: false,
 		noDataMessage: "No data found",
-		layout: "ratio",
+		layout: "fixed",
+	});
+
+	$(document).on("change", ".invoice-checkbox", function () {
+        const invoice = $(this).data("invoice");
+        if ($(this).is(":checked")) {
+            if (!selected_invoices.includes(invoice)) {
+                selected_invoices.push(invoice);
+            }
+        } else {
+            selected_invoices = selected_invoices.filter((inv) => inv !== invoice);
+        }
+    });
+
+	$(document).on("change", "#select-all-checkbox", function () {
+    	const checked = $(this).is(":checked");
+    	$(".invoice-checkbox").prop("checked", checked);
+		if (checked) {
+			selected_invoices = table_data.map((d) => d.name);
+		} else {
+			selected_invoices = [];
+		}
 	});
 
 	setTimeout(() => {

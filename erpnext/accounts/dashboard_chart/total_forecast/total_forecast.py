@@ -17,7 +17,7 @@ def get_overall_forecast_finance_chart_data():
       AND status != 'Paid'
     """)[0][0] or 0
 
-    # Weekly Expenses for noe only purchase invoice 
+    # Overall Expenses for now only purchase invoice 
     # todo: Add other reports as well for expenses
     expenses_due = frappe.db.sql("""
         SELECT IFNULL(SUM(outstanding_amount), 0)
@@ -29,7 +29,7 @@ def get_overall_forecast_finance_chart_data():
     expenses = expenses_due
     surplus_deficit = income - expenses
     return {
-        "labels": ["This Week"],  # only one label
+        "labels": ["Total"],  
         "datasets": [
             {"name": "Income", "values": [income], "color": "#74CF65"},
             {"name": "Expenses", "values": [expenses], "color": "#ED726A"},

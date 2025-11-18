@@ -117,3 +117,17 @@ def get_invoices(filter_param: str, start: int, limit: int):
   except Exception as e:
     frappe.log_error(frappe.get_traceback(), "Error fetching invoices")
     return {"error": str(e)}
+
+@frappe.whitelist()
+def process_multiple_payments(invoices):
+    import json
+    invoices = json.loads(invoices) if isinstance(invoices, str) else invoices
+
+    for inv in invoices:
+        inv_doc = frappe.get_doc("Purchase Invoice", inv)
+        if inv_doc.outstanding_amount > 0:
+            #  replace this with actual payment logic
+            inv_doc.db_set("outstanding_amount", 0)
+            frappe.db.commit()
+
+    return "Payments processed successfully!"

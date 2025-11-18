@@ -1,4 +1,5 @@
 {
+ "color": "#ad0000",
  "creation": "2025-09-09 13:25:17.359768",
  "currency": "INR",
  "docstatus": 0,
@@ -10,7 +11,8 @@
  "is_public": 0,
  "is_standard": 1,
  "label": "Weekly Invoices Due",
- "modified": "2025-09-12 16:23:03.215781",
+ "method": "erpnext.accounts.doctype.purchase_invoice.purchase_invoice_dashboard.get_weekly_invoice_due",
+ "modified": "2025-09-19 14:56:58.831853",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Weekly Invoices Due",
@@ -20,5 +22,5 @@
  "report_name": "Weekly Invoices Due",
  "show_percentage_stats": 1,
  "stats_time_interval": "Daily",
- "type": "Report"
+ "type": "Custom"
 }

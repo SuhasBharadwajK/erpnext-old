@@ -7,11 +7,12 @@
  "dynamic_filters_json": "{}",
  "filters_json": "{}",
  "function": "Count",
- "idx": 0,
+ "idx": 1,
  "is_public": 0,
  "is_standard": 1,
  "label": "Overall Receivables Due",
- "modified": "2025-09-12 22:32:12.996500",
+ "method": "erpnext.accounts.doctype.sales_invoice.sales_invoice_dashboard.get_total_receivables_due",
+ "modified": "2025-09-19 15:09:44.432210",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Overall Receivables Due",
@@ -21,5 +22,5 @@
  "report_name": "Total Receivables Due",
  "show_percentage_stats": 1,
  "stats_time_interval": "Daily",
- "type": "Report"
+ "type": "Custom"
 }
