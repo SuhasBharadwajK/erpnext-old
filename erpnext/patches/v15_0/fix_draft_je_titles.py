@@ -5,8 +5,18 @@ def execute():
     updated = 0
     for je in draft_journals:
         doc = frappe.get_doc('Journal Entry', je.name)
-        new_title = doc.get_title()
-        old_title = frappe.db.get_value('Journal Entry', doc.name, 'title')
+        first_debit_account = None
+        for entry in doc.accounts:
+            if entry.debit > 0:
+                first_debit_account = entry.account
+                break
+        
+        if not first_debit_account:
+            continue  
+        
+        old_title = doc.title
+        new_title = first_debit_account
+        
         if new_title != old_title:
             doc.title = new_title
             doc.save(ignore_permissions=True)
