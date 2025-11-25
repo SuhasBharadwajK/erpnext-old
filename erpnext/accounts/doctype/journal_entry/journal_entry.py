@@ -234,7 +234,16 @@ class JournalEntry(AccountsController):
 		self.update_booked_depreciation(1)
 
 	def get_title(self):
-		return self.pay_to_recd_from or self.accounts[0].account
+		# return self.pay_to_recd_from or self.accounts[0].account
+		for row in self.accounts:
+			if row.debit and row.debit > 0 and row.account:
+				return row.account
+
+		# fallback – old ERPNext default behavior if no debit found
+		if self.accounts:
+			return self.accounts[0].account
+
+		return self.name
 
 	def update_advance_paid(self):
 		advance_paid = frappe._dict()
@@ -1265,7 +1274,6 @@ class JournalEntry(AccountsController):
 	def validate_empty_accounts_table(self):
 		if not self.get("accounts"):
 			frappe.throw(_("Accounts table cannot be blank."))
-
 
 @frappe.whitelist()
 def get_default_bank_cash_account(company, account_type=None, mode_of_payment=None, account=None):
