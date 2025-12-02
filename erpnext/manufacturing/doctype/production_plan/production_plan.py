@@ -73,7 +73,7 @@ class ProductionPlan(Document):
 		item_code: DF.Link | None
 		material_requests: DF.Table[ProductionPlanMaterialRequest]
 		mr_items: DF.Table[MaterialRequestPlanItem]
-		naming_series: DF.Literal["MFG-PP-.YYYY.-", "MFG-PPP-.YYYY.-"]
+		naming_series: DF.Literal["MFG-MPP-.YYYY.-", "MFG-DPP-.YYYY.-"]
 		po_items_line_1: DF.Table[ProductionPlanItem]
 		po_items_line_2: DF.Table[ProductionPlanItem]
 		po_items_line_3: DF.Table[ProductionPlanItem]
@@ -2093,7 +2093,7 @@ def create_child_production_plan(parent_name, child_date=None):
     child = frappe.new_doc("Production Plan")
     child.company = parent.company
     child.posting_date = child_date or parent.posting_date
-    child.naming_series = "MFG-PP-.YYYY.-"
+    child.naming_series = "MFG-DPP-.YYYY.-"
     child.is_parent_plan = 0
     child.parent_production_plan = parent.name
     child.is_monthly_production_plan = 0  # ensure checkbox is off

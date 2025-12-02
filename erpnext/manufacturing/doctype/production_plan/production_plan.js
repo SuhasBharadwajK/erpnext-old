@@ -4,11 +4,11 @@
 frappe.ui.form.on("Production Plan", {
 	is_monthly_production_plan(frm) {
         if (frm.doc.is_monthly_production_plan) {
-            frm.set_value("naming_series", "MFG-PPP-.YYYY.-");
+            frm.set_value("naming_series", "MFG-MPP-.YYYY.-");
 			frm.set_value("is_parent_plan", 1);
 			console.log(is_parent_plan);
         } else {
-            frm.set_value("naming_series", "MFG-PP-.YYYY.-");
+            frm.set_value("naming_series", "MFG-DPP-.YYYY.-");
 			frm.set_value("is_parent_plan", 0);
 			console.log(is_parent_plan);
         }
@@ -18,12 +18,12 @@ frappe.ui.form.on("Production Plan", {
         // Set correct naming series when form loads (new documents)
         if (frm.is_new()) {
             if (frm.doc.is_monthly_production_plan) {
-                frm.set_value("naming_series", "MFG-PPP-.YYYY.-");
+                frm.set_value("naming_series", "MFG-MPP-.YYYY.-");
 				frm.set_value("is_parent_plan", 1);
 				console.log(is_parent_plan);
 
             } else {
-                frm.set_value("naming_series", "MFG-PP-.YYYY.-");
+                frm.set_value("naming_series", "MFG-DPP-.YYYY.-");
 				frm.set_value("is_parent_plan", 0);
 				console.log(is_parent_plan);
             }

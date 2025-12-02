@@ -88,7 +88,7 @@
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "label": "Naming Series",
-   "options": "MFG-PP-.YYYY.-\nMFG-PPP-.YYYY.-",
+   "options": "MFG-MPP-.YYYY.-\nMFG-DPP-.YYYY.-",
    "reqd": 1
   },
   {
@@ -552,24 +552,28 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!doc.parent_production_plan",
    "description": "This will define the production plan as the monthly production plan",
    "fieldname": "is_monthly_production_plan",
    "fieldtype": "Check",
-   "label": "Is Monthly Production Plan"
+   "label": "Is Monthly Production Plan",
+   "read_only": 1
   },
   {
    "default": "0",
+   "depends_on": "eval:!doc.parent_production_plan",
    "fieldname": "is_parent_plan",
    "fieldtype": "Check",
    "hidden": 1,
-   "label": "is parent plan"
+   "label": "is parent plan",
+   "read_only": 1
   }
  ],
  "icon": "fa fa-calendar",
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-01 20:26:39.506538",
+ "modified": "2025-12-02 16:50:34.193232",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Plan",
