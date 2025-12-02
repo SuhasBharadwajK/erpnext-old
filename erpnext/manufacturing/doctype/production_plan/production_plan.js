@@ -2,11 +2,43 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Production Plan", {
+	is_monthly_production_plan(frm) {
+        if (frm.doc.is_monthly_production_plan) {
+            frm.set_value("naming_series", "MFG-PPP-.YYYY.-");
+			frm.set_value("is_parent_plan", 1);
+			console.log(is_parent_plan);
+        } else {
+            frm.set_value("naming_series", "MFG-PP-.YYYY.-");
+			frm.set_value("is_parent_plan", 0);
+			console.log(is_parent_plan);
+        }
+    },
+
+    onload(frm) {
+        // Set correct naming series when form loads (new documents)
+        if (frm.is_new()) {
+            if (frm.doc.is_monthly_production_plan) {
+                frm.set_value("naming_series", "MFG-PPP-.YYYY.-");
+				frm.set_value("is_parent_plan", 1);
+				console.log(is_parent_plan);
+
+            } else {
+                frm.set_value("naming_series", "MFG-PP-.YYYY.-");
+				frm.set_value("is_parent_plan", 0);
+				console.log(is_parent_plan);
+            }
+        }
+    },
+
 	before_save(frm) {
 		// preserve temporary names on production plan item to re-link sub-assembly items
-		frm.doc.po_items.forEach((item) => {
-			item.temporary_name = item.name;
-		});
+		[ "po_items_line_1", "po_items_line_2", "po_items_line_3", "po_items_mono_line", "po_items_multi_line" ].forEach(function(table_name) {
+			if (Array.isArray(frm.doc[table_name])) {
+				frm.doc[table_name].forEach(function(item) {
+					item.temporary_name = item.name;
+				});
+			}
+		});;
 	},
 
 	setup(frm) {
@@ -47,39 +79,42 @@ frappe.ui.form.on("Production Plan", {
 			};
 		});
 
-		frm.set_query("item_code", "po_items", (doc, cdt, cdn) => {
-			return {
-				query: "erpnext.controllers.queries.item_query",
-				filters: {
-					is_stock_item: 1,
-				},
-			};
-		});
-
-		frm.set_query("bom_no", "po_items", (doc, cdt, cdn) => {
-			var d = locals[cdt][cdn];
-			if (d.item_code) {
+		[ "po_items_line_1", "po_items_line_2", "po_items_line_3", "po_items_mono_line", "po_items_multi_line" ]
+		.forEach(function(table_name) {
+			frm.set_query("item_code", table_name, (doc, cdt, cdn) => {
 				return {
-					query: "erpnext.controllers.queries.bom",
-					filters: { item: d.item_code, docstatus: 1 },
+					query: "erpnext.controllers.queries.item_query",
+					filters: {
+						is_stock_item: 1,
+					},
 				};
-			} else frappe.msgprint(__("Please enter Item first"));
-		});
+			});
 
-		frm.set_query("warehouse", "mr_items", (doc) => {
-			return {
-				filters: {
-					company: doc.company,
-				},
-			};
-		});
+			frm.set_query("bom_no", table_name, (doc, cdt, cdn) => {
+				var d = locals[cdt][cdn];
+				if (d.item_code) {
+					return {
+						query: "erpnext.controllers.queries.bom",
+						filters: { item: d.item_code, docstatus: 1 },
+					};
+				} else frappe.msgprint(__("Please enter Item first"));
+			});
 
-		frm.set_query("warehouse", "po_items", (doc) => {
-			return {
-				filters: {
-					company: doc.company,
-				},
-			};
+			frm.set_query("warehouse", "mr_items", (doc) => {
+				return {
+					filters: {
+						company: doc.company,
+					},
+				};
+			});
+
+			frm.set_query("warehouse", table_name, (doc) => {
+				return {
+					filters: {
+						company: doc.company,
+					},
+				};
+			});
 		});
 	},
 
@@ -118,7 +153,7 @@ frappe.ui.form.on("Production Plan", {
 
 				let items = frm.events.get_items_for_work_order(frm);
 
-				if (items?.length && frm.doc.status !== "Closed") {
+              	if (items?.length && frm.doc.status !== "Closed") {
 					frm.add_custom_button(
 						__("Work Order / Subcontract PO"),
 						() => {
@@ -196,7 +231,19 @@ frappe.ui.form.on("Production Plan", {
 	},
 
 	get_items_for_work_order(frm) {
-		let items = frm.doc.po_items;
+		// let items = frm.doc.po_items;
+		let items = [];
+		if (Array.isArray(frm.doc.po_items_line_1)) 
+			items = items.concat(frm.doc.po_items_line_1);
+		if (Array.isArray(frm.doc.po_items_line_2)) 
+			items = items.concat(frm.doc.po_items_line_2);
+		if (Array.isArray(frm.doc.po_items_line_3)) 
+			items = items.concat(frm.doc.po_items_line_3);
+		if (Array.isArray(frm.doc.po_items_mono_line)) 
+			items = items.concat(frm.doc.po_items_mono_line);
+		if (Array.isArray(frm.doc.po_items_multi_line)) 
+			items = items.concat(frm.doc.po_items_multi_line);
+
 		if (frm.doc.sub_assembly_items?.length) {
 			items = [...items, ...frm.doc.sub_assembly_items];
 		}
@@ -289,7 +336,12 @@ frappe.ui.form.on("Production Plan", {
 			freeze: true,
 			doc: frm.doc,
 			callback: function () {
-				refresh_field("po_items");
+				// refresh_field("po_items");
+				frm.refresh_field("po_items_line_1");
+				frm.refresh_field("po_items_line_2");
+				frm.refresh_field("po_items_line_3");
+				frm.refresh_field("po_items_mono_line");
+				frm.refresh_field("po_items_multi_line");
 			},
 		});
 	},
@@ -301,7 +353,12 @@ frappe.ui.form.on("Production Plan", {
 			freeze: true,
 			doc: frm.doc,
 			callback: function () {
-				frm.refresh_field("po_items");
+				// frm.refresh_field("po_items");
+				frm.refresh_field("po_items_line_1");
+				frm.refresh_field("po_items_line_2");
+				frm.refresh_field("po_items_line_3");
+				frm.refresh_field("po_items_mono_line");
+				frm.refresh_field("po_items_multi_line");
 				if (frm.doc.sub_assembly_items.length > 0) {
 					frm.trigger("get_sub_assembly_items");
 				}
@@ -467,11 +524,15 @@ frappe.ui.form.on("Production Plan", {
 
 		// produced qty
 		let item_wise_qty = {};
-		frm.doc.po_items.forEach((data) => {
-			if (!item_wise_qty[data.item_code]) {
-				item_wise_qty[data.item_code] = data.produced_qty;
-			} else {
-				item_wise_qty[data.item_code] += data.produced_qty;
+		[ "po_items_line_1", "po_items_line_2", "po_items_line_3", "po_items_mono_line", "po_items_multi_line" ].forEach(function(table_name) {
+			if (Array.isArray(frm.doc[table_name])) {
+				frm.doc[table_name].forEach(function(data) {
+					if (!item_wise_qty[data.item_code]) {
+						item_wise_qty[data.item_code] = flt(data.produced_qty || 0);
+					} else {
+						item_wise_qty[data.item_code] += flt(data.produced_qty || 0);
+					}
+				});
 			}
 		});
 
@@ -628,12 +689,41 @@ frappe.tour["Production Plan"] = [
 		),
 	},
 	{
-		fieldname: "po_items",
-		title: "Finished Goods",
-		description: __(
-			"On expanding a row in the Items to Manufacture table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
-		),
-	},
+        // UPDATED: replaced single po_items with multiple lines
+        fieldname: "po_items_line_1",
+        title: "Finished Goods Line 1",
+        description: __(
+            "On expanding a row in the Items to Manufacture Line 1 table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
+        ),
+    },
+    {
+        fieldname: "po_items_line_2",
+        title: "Finished Goods Line 2",
+        description: __(
+            "On expanding a row in the Items to Manufacture Line 2 table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
+        ),
+    },
+	{
+        fieldname: "po_items_line_3",
+        title: "Finished Goods Line 3",
+        description: __(
+            "On expanding a row in the Items to Manufacture Line 3 table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
+        ),
+    },
+	{
+        fieldname: "po_items_mono_line",
+        title: "Finished Goods Mono Line",
+        description: __(
+            "On expanding a row in the Items to Manufacture Mono Line table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
+        ),
+    },
+    {
+        fieldname: "po_items_multi_line",
+        title: "Finished Goods Multi Line",
+        description: __(
+            "On expanding a row in the Items to Manufacture Multi Line table, you'll see an option to 'Include Exploded Items'. Ticking this includes raw materials of the sub-assembly items in the production process."
+        ),
+    },
 	{
 		fieldname: "include_non_stock_items",
 		title: "Include Non Stock Items",
