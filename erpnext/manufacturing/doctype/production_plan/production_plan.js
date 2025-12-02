@@ -154,13 +154,25 @@ frappe.ui.form.on("Production Plan", {
 				let items = frm.events.get_items_for_work_order(frm);
 
               	if (items?.length && frm.doc.status !== "Closed") {
-					frm.add_custom_button(
-						__("Work Order / Subcontract PO"),
-						() => {
-							frm.trigger("make_work_order");
-						},
-						__("Create")
-					);
+					if (frm.doc.is_parent_plan == 1) {
+						frm.add_custom_button(
+							__("Child Production Plan"),
+							() => {
+								frm.trigger("create_child_production_plan");
+							},
+							__("Create")
+						);
+					}
+					else 
+					{
+						frm.add_custom_button(
+							__("Work Order / Subcontract PO"),
+							() => {
+								frm.trigger("make_work_order");
+							},
+							__("Create")
+						);
+					}
 				}
 
 				if (
@@ -553,6 +565,33 @@ frappe.ui.form.on("Production Plan", {
 		message = title;
 		frm.dashboard.add_progress(__("Status"), bars, message);
 	},
+
+	create_child_production_plan(frm) {
+        frappe.prompt(
+            {
+                fieldname: "child_date",
+                label: __("Child Plan Date"),
+                fieldtype: "Date",
+                reqd: 1,
+            },
+            (values) => {
+                frappe.call({
+                    method: "erpnext.manufacturing.doctype.production_plan.production_plan.create_child_production_plan",
+                    args: {
+                        parent_name: frm.doc.name,
+                        child_date: values.child_date,
+                    },
+                    callback: (r) => {
+                        if (!r.exc && r.message) {
+                            frappe.set_route("Form", "Production Plan", r.message);
+                        }
+                    },
+                });
+            },
+            __("Create Child Production Plan"),
+            __("Create")
+        );
+    },
 });
 
 frappe.ui.form.on("Production Plan Item", {
