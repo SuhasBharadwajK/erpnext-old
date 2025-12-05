@@ -156,9 +156,9 @@ frappe.ui.form.on("Production Plan", {
               	if (items?.length && frm.doc.status !== "Closed") {
 					if (frm.doc.is_parent_plan == 1) {
 						frm.add_custom_button(
-							__("Child Production Plan"),
+							__("Daily Production Plan"),
 							() => {
-								frm.trigger("create_child_production_plan");
+								frm.trigger("create_daily_production_plan");
 							},
 							__("Create")
 						);
@@ -188,6 +188,23 @@ frappe.ui.form.on("Production Plan", {
 						__("Create")
 					);
 				}
+			}
+
+			if (frm.doc.is_parent_plan && frm.doc.docstatus == 1) {
+				frm.add_custom_button(__("Refresh from DPPs"), function() {
+					frappe.call({
+						method: "erpnext.manufacturing.doctype.production_plan.production_plan.refresh_mpp_progress",
+						args: {
+							mpp_name: frm.doc.name
+						},
+						callback: function(r) {
+							if (!r.exc) {
+								frappe.msgprint("MPP updated from its DPP's");
+								frm.refresh();
+							}
+						}
+					});
+				});
 			}
 		}
 
@@ -241,6 +258,19 @@ frappe.ui.form.on("Production Plan", {
 
 		set_field_options("projected_qty_formula", projected_qty_formula);
 	},
+	
+	onload: function(frm) {
+        if (frm.doc.is_parent_plan && frm.doc.docstatus == 1) {
+            // Auto-update on load
+            frappe.call({
+                method: "erpnext.manufacturing.doctype.production_plan.production_plan.refresh_mpp_progress",
+                args: { mpp_name: frm.doc.name },
+                callback: function(r) {
+					frm.refresh()
+                }
+            });
+        }
+    },
 
 	get_items_for_work_order(frm) {
 		// let items = frm.doc.po_items;
@@ -566,20 +596,20 @@ frappe.ui.form.on("Production Plan", {
 		frm.dashboard.add_progress(__("Status"), bars, message);
 	},
 
-	create_child_production_plan(frm) {
+	create_daily_production_plan(frm) {
         frappe.prompt(
             {
-                fieldname: "child_date",
-                label: __("Child Plan Date"),
+                fieldname: "dpp_date",
+                label: __("Daily Production Plan Date"),
                 fieldtype: "Date",
                 reqd: 1,
             },
             (values) => {
                 frappe.call({
-                    method: "erpnext.manufacturing.doctype.production_plan.production_plan.create_child_production_plan",
+                    method: "erpnext.manufacturing.doctype.production_plan.production_plan.create_daily_production_plan",
                     args: {
                         parent_name: frm.doc.name,
-                        child_date: values.child_date,
+                        dpp_date: values.dpp_date,
                     },
                     callback: (r) => {
                         if (!r.exc && r.message) {
@@ -588,7 +618,7 @@ frappe.ui.form.on("Production Plan", {
                     },
                 });
             },
-            __("Create Child Production Plan"),
+            __("Create Daily Production Plan"),
             __("Create")
         );
     },

@@ -8,6 +8,7 @@
  "field_order": [
   "naming_series",
   "is_monthly_production_plan",
+  "monthly_production_plan",
   "company",
   "get_items_from",
   "column_break1",
@@ -42,7 +43,7 @@
   "get_items_line_3",
   "combine_items_line_3",
   "po_items_line_3",
-  "get_finished_goods_for_manufacture_in_mono_line_section",
+  "select_items_to_manufacture_in_mono_line_section",
   "get_items_mono_line",
   "combine_items_mono_line",
   "po_items_mono_line",
@@ -85,6 +86,7 @@
  ],
  "fields": [
   {
+   "default": "MFG-MPP-.YYYY.-",
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "label": "Naming Series",
@@ -510,11 +512,6 @@
    "options": "Production Plan Item"
   },
   {
-   "fieldname": "get_finished_goods_for_manufacture_in_mono_line_section",
-   "fieldtype": "Section Break",
-   "label": "Get Finished Goods for Manufacture in Mono Line"
-  },
-  {
    "default": "0",
    "depends_on": "eval:doc.get_items_from == 'Sales Order'",
    "fieldname": "combine_items_mono_line",
@@ -552,12 +549,11 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!doc.parent_production_plan",
    "description": "This will define the production plan as the monthly production plan",
    "fieldname": "is_monthly_production_plan",
    "fieldtype": "Check",
    "label": "Is Monthly Production Plan",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.parent_production_plan"
   },
   {
    "default": "0",
@@ -567,13 +563,26 @@
    "hidden": 1,
    "label": "is parent plan",
    "read_only": 1
+  },
+  {
+   "fieldname": "select_items_to_manufacture_in_mono_line_section",
+   "fieldtype": "Section Break",
+   "label": "Select Items to Manufacture in Mono Line"
+  },
+  {
+   "fieldname": "monthly_production_plan",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Monthly Production Plan",
+   "options": "Production Plan",
+   "read_only": 1
   }
  ],
  "icon": "fa fa-calendar",
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-02 16:50:34.193232",
+ "modified": "2025-12-04 17:02:57.498114",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Plan",

@@ -72,6 +72,7 @@ class ProductionPlan(Document):
 		is_parent_plan: DF.Check
 		item_code: DF.Link | None
 		material_requests: DF.Table[ProductionPlanMaterialRequest]
+		monthly_production_plan: DF.Link | None
 		mr_items: DF.Table[MaterialRequestPlanItem]
 		naming_series: DF.Literal["MFG-MPP-.YYYY.-", "MFG-DPP-.YYYY.-"]
 		po_items_line_1: DF.Table[ProductionPlanItem]
@@ -2083,25 +2084,126 @@ def get_reserved_qty_for_sub_assembly(item_code, warehouse):
 
 
 @frappe.whitelist()
-def create_child_production_plan(parent_name, child_date=None):
+def create_daily_production_plan(parent_name, child_date=None):
     parent = frappe.get_doc("Production Plan", parent_name)
-
-    # Basic guard: only allow from parent (monthly) plans
     if not parent.get("is_parent_plan"):
-        frappe.throw("Child Production Plan can only be created from a parent (monthly) Production Plan.")
+        frappe.throw("Daily Production Plan can only be created from a parent (monthly) Production Plan.")
 
     child = frappe.new_doc("Production Plan")
     child.company = parent.company
     child.posting_date = child_date or parent.posting_date
     child.naming_series = "MFG-DPP-.YYYY.-"
     child.is_parent_plan = 0
-    child.parent_production_plan = parent.name
-    child.is_monthly_production_plan = 0  # ensure checkbox is off
-	
-    # If you want to copy some items or filters from parent:
-    # for row in parent.po_items_line_1 or parent.po_items_multi_line, etc.
-    #     child.append("po_items_line_1", { ... })
+    child.monthly_production_plan = parent.name
+    child.is_monthly_production_plan = 0
 
+    copy_line_items(parent, child, child_date)
     child.insert(ignore_permissions=True)
-    # keep in Draft (docstatus = 0)
+
+    if parent.status in ("Not Started", "Submitted"):
+        parent.status = "In Process"
+        parent.db_set("status", "In Process")
     return child.name
+
+def copy_line_items(parent, child, child_date=None):
+    child_date_parsed = getdate(child_date) if child_date else None
+
+    line_tables = [
+        ("po_items_line_1", parent.po_items_line_1),
+        ("po_items_line_2", parent.po_items_line_2),
+        ("po_items_line_3", parent.po_items_line_3),
+        ("po_items_mono_line", parent.po_items_mono_line),
+        ("po_items_multi_line", parent.po_items_multi_line),
+    ]
+    
+    for table_name, parent_items in line_tables:
+        for item in parent_items:
+            item_date = getattr(item, "planned_start_date", None)
+            item_date_parsed = getdate(item_date) if item_date else None
+
+            if not child_date_parsed or (item_date_parsed == child_date_parsed):
+                child.append(table_name, {
+                    "item_code": item.item_code,
+                    "planned_qty": item.planned_qty,
+                    "bom_no": item.bom_no,
+                    "warehouse": getattr(item, "warehouse", None),
+                    "description": getattr(item, "description", None),
+                    "uom": getattr(item, "uom", None),
+                    "planned_start_date": item_date,
+                })
+
+def update_mpp_from_dpp_completion(doc, method=None):
+    """Update MPP progress when DPP completes"""
+    if doc.doctype != "Production Plan" or not doc.monthly_production_plan:
+        return
+    
+    refresh_mpp_progress(doc.monthly_production_plan)
+
+def update_child_item_production(mpp_name):
+    """Update MPP child item produced_qty from DPP actuals (by date + item)"""
+    
+    line_tables = ['po_items_line_1', 'po_items_line_2', 'po_items_line_3', 
+                   'po_items_mono_line', 'po_items_multi_line']
+    
+    for table_name in line_tables:
+        mpp_items = frappe.db.sql("""
+            SELECT name, item_code, planned_start_date, planned_qty
+            FROM `tabProduction Plan Item`
+            WHERE parent = %s AND parentfield = %s
+        """, (mpp_name, table_name), as_dict=1)
+        
+        for item in mpp_items:
+            dpp_produced = frappe.db.sql("""
+                SELECT COALESCE(SUM(p.produced_qty), 0)
+                FROM `tabProduction Plan Item` p
+                JOIN `tabProduction Plan` d ON p.parent = d.name
+                WHERE d.monthly_production_plan = %s 
+                AND p.item_code = %s 
+                AND DATE(p.planned_start_date) = DATE(%s)
+                AND p.parentfield = %s
+            """, (mpp_name, item.item_code, item.planned_start_date, table_name))[0][0]
+            
+            pending_qty = item.planned_qty - dpp_produced
+            
+            frappe.db.sql("""
+                UPDATE `tabProduction Plan Item`
+                SET produced_qty = %s, pending_qty = %s
+                WHERE name = %s
+            """, (dpp_produced, pending_qty, item.name))
+
+@frappe.whitelist()
+def refresh_mpp_progress(mpp_name):
+    """Manual MPP refresh from all DPPs - called from JS"""
+    if not frappe.db.exists("Production Plan", mpp_name):
+        frappe.throw("MPP not found")
+    
+    mpp = frappe.get_doc("Production Plan", mpp_name)
+    if not mpp.is_parent_plan:
+        frappe.throw("Not a parent plan")
+    
+    total_planned = 0
+    line_tables = ['po_items_line_1', 'po_items_line_2', 'po_items_line_3', 
+                   'po_items_mono_line', 'po_items_multi_line']
+    for table_name in line_tables:
+        total_planned += sum(getattr(item, 'planned_qty', 0) for item in getattr(mpp, table_name, []))
+    
+    total_produced = frappe.db.sql("""
+        SELECT COALESCE(SUM(total_produced_qty), 0)
+        FROM `tabProduction Plan`
+        WHERE monthly_production_plan = %s AND docstatus = 1
+    """, mpp_name)[0][0]
+    
+    frappe.db.set_value("Production Plan", mpp_name, {
+        "total_planned_qty": total_planned,
+        "total_produced_qty": total_produced,
+        "status": "Completed" if total_produced >= total_planned else "In Process"
+    })
+
+    update_child_item_production(mpp_name)
+    frappe.publish_realtime("progress_update", {
+        "mpp_name": mpp_name,
+        "planned": total_planned,
+        "produced": total_produced
+    })
+    
+    return {"planned": total_planned, "produced": total_produced}
