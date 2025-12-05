@@ -2095,7 +2095,7 @@ def create_daily_production_plan(parent_name, child_date=None):
     child.naming_series = "MFG-DPP-.YYYY.-"
     child.is_parent_plan = 0
     child.monthly_production_plan = parent.name
-    child.is_monthly_production_plan = 0
+    # child.is_monthly_production_plan = 0
 
     copy_line_items(parent, child, child_date)
     child.insert(ignore_permissions=True)

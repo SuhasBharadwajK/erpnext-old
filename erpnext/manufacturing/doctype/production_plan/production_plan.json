@@ -549,11 +549,13 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.is_parent_plan == 0",
    "description": "This will define the production plan as the monthly production plan",
    "fieldname": "is_monthly_production_plan",
    "fieldtype": "Check",
    "label": "Is Monthly Production Plan",
-   "read_only_depends_on": "eval:doc.parent_production_plan"
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.monthly_production_plan"
   },
   {
    "default": "0",
@@ -582,7 +584,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-04 17:02:57.498114",
+ "modified": "2025-12-05 15:35:57.198640",
  "modified_by": "Administrator",
  "module": "Manufacturing",
  "name": "Production Plan",
